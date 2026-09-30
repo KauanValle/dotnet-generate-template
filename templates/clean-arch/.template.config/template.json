@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Kauan",
+  "classifications": [
+    "Web",
+    "API",
+    "DDD"
+  ],
+  "identity": "Dotnet10.Api.Template",
+  "name": "Template .NET10 para API",
+  "shortName": "api-net10",
+  "sourceName": "Template",
+  "preferNameDirectory": true,
+  "sources": [
+    {
+      "modifiers": [
+        {
+          "exclude": [
+            "**/bin/**",
+            "**/obj/**",
+            "**/.vs/**",
+            ".template.config/**"
+          ]
+        }
+      ]
+    }
+  ]
+}
