@@ -1,0 +1,100 @@
+name: Criar novo projeto .NET
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_name:
+        description: 'Nome do projeto/repositório (ex: EmpresasPedido)'
+        required: true
+        type: string
+      template:
+        description: 'Template do dotnet new'
+        required: true
+        type: choice
+        default: webapi
+        options:
+          - webapi
+      visibility:
+        description: 'Visibilidade do repositório'
+        required: true
+        type: choice
+        default: private
+        options:
+          - private
+          - public
+
+permissions:
+  contents: read
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_NAME: ${{ inputs.project_name }}
+      TEMPLATE: ${{ inputs.template }}
+      VISIBILITY: ${{ inputs.visibility }}
+      OWNER: ${{ github.repository_owner }}
+      GH_TOKEN: ${{ secrets.GH_PAT }}
+
+    steps:
+      - name: Checkout do gerador
+        uses: actions/checkout@v4
+
+      - name: Validar nome do projeto
+        run: |
+          if [[ ! "$PROJECT_NAME" =~ ^[A-Za-z][A-Za-z0-9._-]*$ ]]; then
+            echo "::error::Nome inválido. Use apenas letras, números, ponto, hífen e underscore."
+            exit 1
+          fi
+
+      - name: Verificar se o repositório já existe
+        run: |
+          if gh repo view "$OWNER/$PROJECT_NAME" >/dev/null 2>&1; then
+            echo "::error::O repositório $OWNER/$PROJECT_NAME já existe."
+            exit 1
+          fi
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+
+      - name: Gerar solution e projetos
+        run: |
+          mkdir -p "$RUNNER_TEMP/out/$PROJECT_NAME"
+          cd "$RUNNER_TEMP/out/$PROJECT_NAME"
+
+          dotnet new sln -n "$PROJECT_NAME"
+          dotnet new gitignore
+
+          dotnet new "$TEMPLATE" -n "$PROJECT_NAME" -o "src/$PROJECT_NAME"
+          dotnet sln add "src/$PROJECT_NAME"
+
+          mkdir -p .github/workflows
+          cp "$GITHUB_WORKSPACE/templates/ci.yml" .github/workflows/ci.yml
+
+          printf "# %s\n\nProjeto gerado por dotnet-generate-template.\n" "$PROJECT_NAME" > README.md
+
+      - name: Validar build
+        run: |
+          cd "$RUNNER_TEMP/out/$PROJECT_NAME"
+          dotnet restore
+          dotnet build --no-restore -c Release
+
+      - name: Criar repositório e enviar código
+        run: |
+          cd "$RUNNER_TEMP/out/$PROJECT_NAME"
+          git init -b main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore: projeto inicial gerado por dotnet-generate-template"
+
+          gh repo create "$OWNER/$PROJECT_NAME" --"$VISIBILITY" --source=. --remote=origin --push
+
+      - name: Resumo
+        run: |
+          echo "### Projeto criado 🎉" >> "$GITHUB_STEP_SUMMARY"
+          echo "https://github.com/$OWNER/$PROJECT_NAME" >> "$GITHUB_STEP_SUMMARY"
