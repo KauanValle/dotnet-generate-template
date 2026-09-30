@@ -11,9 +11,9 @@ on:
         description: 'Template do dotnet new'
         required: true
         type: choice
-        default: webapi
+        default: api-clean-arch
         options:
-          - webapi
+          - api-clean-arch
       visibility:
         description: 'Visibilidade do repositório'
         required: true
@@ -61,13 +61,22 @@ jobs:
             8.0.x
             9.0.x
 
+      - name: Instalar templates customizados
+        run: |
+          for dir in "$GITHUB_WORKSPACE"/templates/*/; do
+            if [ -d "$dir/.template.config" ]; then
+              dotnet new install "$dir"
+            fi
+          done
+
       - name: Gerar solution e projetos
         run: |
           mkdir -p "$RUNNER_TEMP/out/$PROJECT_NAME"
           cd "$RUNNER_TEMP/out/$PROJECT_NAME"
 
-          dotnet new sln -n "$PROJECT_NAME"
-          dotnet new gitignore
+          if [ "$TEMPLATE" = "api-clean-arch" ]; then
+            TEMPLATE="api-net10"
+          fi
 
           dotnet new "$TEMPLATE" -n "$PROJECT_NAME" -o "src/$PROJECT_NAME"
           dotnet sln add "src/$PROJECT_NAME"
