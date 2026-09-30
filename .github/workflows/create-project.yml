@@ -78,8 +78,7 @@ jobs:
             TEMPLATE="api-net10"
           fi
 
-          dotnet new "$TEMPLATE" -n "$PROJECT_NAME" -o "src/$PROJECT_NAME"
-          dotnet sln add "src/$PROJECT_NAME"
+          dotnet new $TEMPLATE -n "$PROJECT_NAME" -o .
 
           mkdir -p .github/workflows
           cp "$GITHUB_WORKSPACE/templates/ci.yml" .github/workflows/ci.yml
